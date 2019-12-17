@@ -18,9 +18,11 @@ bridge = CvBridge()
 
 
 focal_length = 378.9499338662045
-cx = 321.5308027037405
 cy = 242.8304397646636
-scalingFactor = 1
+cx = 321.5308027037405
+
+scalingFactor = 4000.000
+
 
 
 def generate_pointcloud(rgb_message, depth_message):
@@ -30,26 +32,47 @@ def generate_pointcloud(rgb_message, depth_message):
     cv_rgb = bridge.imgmsg_to_cv2(rgb_message, "rgb8")
     cv_depth = bridge.imgmsg_to_cv2(depth_message, "16UC1")
     
-    rgb = Image.fromarray(cv_rgb)
-    depth = Image.fromarray(cv_depth)
+    cv_depth = cv2.medianBlur(cv_depth,5)
+    # cv_depth = cv2.blur(cv_depth, (9,9))
+    # cv_depth = cv2.GaussianBlur(cv_depth, (3,3), 1)
 
-    print("RGB SIZE", rgb.size)
-    print("DEPTH SIZE", depth.size)
-    if rgb.size != depth.size:
-        raise Exception("Color and depth image do not have the same resolution.")
+
+    cv2.imshow("RGB", cv_rgb)
+    cv2.imshow("depth", cv_depth)
+    cv2.waitKey(1)
+
+    # if rgb.size != depth.size:
+    #     raise Exception("Color and depth image do not have the same resolution.")
 
     # if depth.mode != "I":
     #     raise Exception("Depth image is not in intensity format")
 
     points = []    
-    for v in range(rgb.size[1]):
-        for u in range(rgb.size[0]):
-            color = rgb.getpixel((u,v))
-            Z = depth.getpixel((u,v)) / scalingFactor
-            if Z==0: continue
-            X = (u - cx) * Z / focal_length
-            Y = (v - cy) * Z / focal_length
+    # for v in range(rgb.size[1]):
+    #     for u in range(rgb.size[0]):
+    #         color = rgb.getpixel((u,v))
+    #         Z = depth.getpixel((u,v)) / scalingFactor
+    #         if Z==0: continue
+    #         X = (u - cx) * Z / focal_length
+    #         Y = (v - cy) * Z / focal_length
+    #         points.append([X,Y,Z,color[0],color[1],color[2]])
+    Z1 = 3 # an initial value for the Zbuffer
+    for v in range(30,cv_rgb.shape[1]):
+        for u in range(cv_rgb.shape[0]):
+            color = cv_rgb[u,v]
+            Z = cv_depth[u,v]/ scalingFactor
+            # to prevent hole failure
+            if Z<=0.5: 
+                Z = Z1
+                X = (u - cx) * Z1 / focal_length
+                Y = -(v - cy) * Z1 / focal_length
+            else:
+                X = (u - cx) * Z / focal_length
+                Y = -(v - cy) * Z / focal_length
+                Z1 = Z
+
             points.append([X,Y,Z,color[0],color[1],color[2]])
+
     header = Header()
     header.frame_id = "try_pointcloud"
     fields = [
@@ -58,7 +81,7 @@ def generate_pointcloud(rgb_message, depth_message):
                 PointField('z', 8, PointField.FLOAT32, 1),
                 PointField('r', 12, PointField.FLOAT32, 1),
                 PointField('g', 16, PointField.FLOAT32, 1),
-                PointField('b', 20, PointField.FLOAT32, 1),]
+                PointField('b', 20, PointField.FLOAT32, 1)]
     pointcloud = point_cloud2.create_cloud(header=header,fields=fields, points=points)
     return pointcloud
     
@@ -66,8 +89,8 @@ def generate_pointcloud(rgb_message, depth_message):
 def rgb_callback(rgb_image):
     global rgb_message
     rgb_message = rgb_image
-    print(type(rgb_message))
-    print("UUUUUUUUUUUUUUUUUUUUUUUUU")
+    # print(type(rgb_message))
+    # print("UUUUUUUUUUUUUUUUUUUUUUUUU")
 
 
 def depth_callback(depth_image):
@@ -91,5 +114,5 @@ if __name__ == '__main__':
     while True:
         pointcloud = generate_pointcloud(rgb_message, depth_message)
         point_pub.publish(pointcloud)
-        rospy.sleep(1.0)
+        
 
