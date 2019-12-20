@@ -10,6 +10,7 @@ from geometry_msgs.msg import Point32
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs import point_cloud2
 from std_msgs.msg import Header
+from std_msgs.msg import Float64MultiArray
 from sensor_msgs.msg import Image as rosImage
 from generate_points.msg import image_with_class
 from generate_points.msg import position_3d
@@ -18,7 +19,6 @@ import cv2
 
 
 bridge = CvBridge()
-
 
 focal_length = 378.95
 cy = 242.83
@@ -115,6 +115,7 @@ def generate_pointcloud_all_in_one(all_in_one_message, only_class=True):
         all_x_in_one_object = ""
         all_y_in_one_object = ""
         all_z_in_one_object = ""
+
         total_x = []
         total_y = []
         total_z = []
@@ -140,9 +141,13 @@ def generate_pointcloud_all_in_one(all_in_one_message, only_class=True):
                     all_z_in_one_object = all_z_in_one_object + str(Z)+" "
 
                     points.append([X,Y,Z,color[0],color[1],color[2]])
+            
             total_x.append(all_x_in_one_object)
             total_y.append(all_y_in_one_object)
             total_z.append(all_z_in_one_object)
+            all_x_in_one_object = ""
+            all_y_in_one_object = ""
+            all_z_in_one_object = ""
         geometry_data = output_geometry(class_name, total_x, total_y, total_z)
         header = Header()
         header.frame_id = "try_pointcloud"

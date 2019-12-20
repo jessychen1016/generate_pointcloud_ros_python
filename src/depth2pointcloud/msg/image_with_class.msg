@@ -1,4 +1,4 @@
-Header Header
+Header header
 sensor_msgs/Image ColorImage
 sensor_msgs/Image DepthImage
 string[] class_name_of_the_box
