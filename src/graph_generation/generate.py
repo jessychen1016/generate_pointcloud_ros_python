@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys
 import os
-import numpy
+import numpy as np
 import rospy
 import roslib
 from cv_bridge import CvBridge, CvBridgeError
@@ -9,6 +9,10 @@ from std_msgs.msg import Header
 from generate_points.msg import image_with_class
 from generate_points.msg import position_3d
 import cv2
+from mpl_toolkits import mplot3d
+import matplotlib.pyplot as plt
+figure_3d = plt.figure()
+ax = figure_3d.add_subplot(111, projection='3d')
 
 
 
@@ -45,12 +49,40 @@ def get_points_data(class_name, total_x, total_y, total_z):
         x_float_ = []
         y_float_ = []
         z_float_ = []
-        
+
+    return x_float_list, y_float_list, z_float_list, number_of_object
+
+def calculate_center(x_float_list, y_float_list, z_float_list, number_of_object):
+    x_float_list_np = np.array(x_float_list)
+    y_float_list_np = np.array(y_float_list)
+    z_float_list_np = np.array(z_float_list)
+    for i in range(number_of_object):
+        x_float_list_np[i] = np.mean(x_float_list_np[i])
+        y_float_list_np[i] = np.mean(y_float_list_np[i])
+        z_float_list_np[i] = np.mean(z_float_list_np[i])
+    x_float_list = x_float_list_np.tolist()
+    y_float_list = y_float_list_np.tolist()
+    z_float_list = z_float_list_np.tolist()
+
+    print("x_float_list", x_float_list)
+    print("y_float_list", y_float_list)
+    print("z_float_list", z_float_list)
+
     return x_float_list, y_float_list, z_float_list
+
+def draw_geometry_points(x_center_list, y_center_list, z_center_list, number_of_object):
+    for i in range(number_of_object):
+        xs = x_center_list[i]
+        ys = y_center_list[i]
+        zs = z_center_list[i]
+        ax.scatter(xs, ys, zs, c='r', marker='o')
+        # ax.plot(xs, ys, zs, color='g')
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+    plt.show()
+
     
-
-
-
 def input_callback(geometry_data):
     global class_name, total_x, total_y, total_z
     class_name = geometry_data.class_name_of_the_box
@@ -68,5 +100,7 @@ if __name__ == '__main__':
     while True:
         # pointcloud = generate_pointcloud(rgb_message, depth_message)
         if class_name: # to make sure the program jump into graph_generate only when get new message arrive
-            x_float_list, y_float_list, z_float_list = get_points_data(class_name, total_x, total_y, total_z)
+            x_float_list, y_float_list, z_float_list, number_of_object= get_points_data(class_name, total_x, total_y, total_z)
+            x_center_list, y_center_list, z_center_list = calculate_center(x_float_list, y_float_list, z_float_list, number_of_object)
             class_name = None # to clear the existed class
+            draw_geometry_points(x_center_list, y_center_list, z_center_list, number_of_object)
