@@ -23,7 +23,7 @@ bridge = CvBridge()
 focal_length = 378.95
 cy = 242.83
 cx = 321.53
-scalingFactor = 3000
+scalingFactor = 3000.0000
 
 
 
@@ -86,6 +86,8 @@ def generate_pointcloud_all_in_one(all_in_one_message, only_class=True):
     # generate pointclouds from rgb(or mono) and depth
     rgb_message=all_in_one_message.ColorImage
     depth_message=all_in_one_message.DepthImage
+    timestamp_secs = rgb_message.header.stamp.secs
+    timestamp_nsecs = rgb_message.header.stamp.nsecs
 
     cv_rgb = bridge.imgmsg_to_cv2(rgb_message, "rgb8")
     cv_depth = bridge.imgmsg_to_cv2(depth_message, "16UC1")
@@ -149,12 +151,12 @@ def generate_pointcloud_all_in_one(all_in_one_message, only_class=True):
             all_y_in_one_object = ""
             all_z_in_one_object = ""
         geometry_data = output_geometry(class_name, total_x, total_y, total_z)
-        geometry_data.header.stamp.secs = rgb_message.header.stamp.secs
-        geometry_data.header.stamp.nsecs = rgb_message.header.stamp.nsecs
+        geometry_data.header.stamp.secs = timestamp_secs
+        geometry_data.header.stamp.nsecs = timestamp_nsecs
         header = Header()
         header.frame_id = "try_pointcloud"
-        header.stamp.secs = rgb_message.header.stamp.secs
-        header.stamp.nsecs = rgb_message.header.stamp.nsecs
+        header.stamp.secs = timestamp_secs
+        header.stamp.nsecs = timestamp_nsecs
         fields = [
                     PointField('x', 0, PointField.FLOAT32, 1),
                     PointField('y', 4, PointField.FLOAT32, 1),

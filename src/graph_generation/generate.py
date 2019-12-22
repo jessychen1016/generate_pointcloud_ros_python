@@ -12,8 +12,9 @@ from generate_points.msg import position_3d
 import cv2
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
-figure_3d = plt.figure()
-ax = figure_3d.add_subplot(111, projection='3d')
+from sensor_msgs.msg import PointCloud2
+
+
 
 bridge = CvBridge()
 
@@ -52,7 +53,8 @@ def get_points_data(class_name, total_x, total_y, total_z):
         x_float_ = []
         y_float_ = []
         z_float_ = []
-
+    print("z list[0][0] == %.2f"%z_float_list[0][0])
+    print("z list[0][1] == %.2f"%z_float_list[0][1])
     return x_float_list, y_float_list, z_float_list, number_of_object
 
 def calculate_center(x_float_list, y_float_list, z_float_list, number_of_object):
@@ -74,6 +76,8 @@ def calculate_center(x_float_list, y_float_list, z_float_list, number_of_object)
     return x_float_list, y_float_list, z_float_list
 
 def draw_geometry_points(x_center_list, y_center_list, z_center_list, number_of_object):
+    figure_3d = plt.figure()
+    ax = figure_3d.add_subplot(111, projection='3d')   
     for i in range(number_of_object):
         xs = x_center_list[i]
         ys = y_center_list[i]
@@ -83,7 +87,10 @@ def draw_geometry_points(x_center_list, y_center_list, z_center_list, number_of_
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
+    plt.ion()
     plt.show()
+    plt.pause(0.001)
+    
 
     
 def input_callback(geometry_data):
@@ -97,17 +104,24 @@ def reference_callback(data):
     global referen_image
     referen_image = data.ColorImage
 
+def pt_reference_callback(data):
+    global reference_pt
+    reference_pt = data
+
 if __name__ == '__main__':
     rospy.init_node('Graph_Generator', anonymous=True)
     rospy.Subscriber('/Geometry_Data_of_Detection', position_3d, input_callback) # BGR, Depth, Class(labels and their location)
     rospy.Subscriber('/class_image_YOLO', image_with_class, reference_callback) # BGR, Depth, Class(labels and their location)
+    rospy.Subscriber('/point_cloud2', PointCloud2, pt_reference_callback) # PointCloud2
     graph_pub = rospy.Publisher("Graph_of_Detection", position_3d, queue_size=1)
-    global reference_pub
-    # reference_pub = rospy.Publisher("Reference_Frame", Image, queue_size=1)
+    global img_reference_pub, pt_reference_pub
+    # reference_pub = rospy.Publisher("IMG_Reference_Frame", Image, queue_size=1)
+    pt_reference_pub = rospy.Publisher("PT_Reference_Frame", PointCloud2, queue_size=1)
     rospy.sleep(2)
     while True:
         # pointcloud = generate_pointcloud(rgb_message, depth_message)
         if class_name: # to make sure the program jump into graph_generate only when get new message arrive
+            pt_reference_pub.publish(reference_pt)
             x_float_list, y_float_list, z_float_list, number_of_object= get_points_data(class_name, total_x, total_y, total_z)
             x_center_list, y_center_list, z_center_list = calculate_center(x_float_list, y_float_list, z_float_list, number_of_object)
             class_name = None # to clear the existed class
@@ -116,3 +130,4 @@ if __name__ == '__main__':
             cv2.imshow("Reference Image", referen_image_mat)
             cv2.waitKey(3)
             draw_geometry_points(x_center_list, y_center_list, z_center_list, number_of_object)
+            cv2.waitKey(3000000)
