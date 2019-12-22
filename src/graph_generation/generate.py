@@ -4,6 +4,7 @@ import os
 import numpy as np
 import rospy
 import roslib
+from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import Header
 from generate_points.msg import image_with_class
@@ -13,6 +14,8 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 figure_3d = plt.figure()
 ax = figure_3d.add_subplot(111, projection='3d')
+
+bridge = CvBridge()
 
 
 
@@ -90,12 +93,17 @@ def input_callback(geometry_data):
     total_y = geometry_data.y_positions_of_all_class
     total_z = geometry_data.z_positions_of_all_class 
 
-
+def reference_callback(data):
+    global referen_image
+    referen_image = data.ColorImage
 
 if __name__ == '__main__':
     rospy.init_node('Graph_Generator', anonymous=True)
     rospy.Subscriber('/Geometry_Data_of_Detection', position_3d, input_callback) # BGR, Depth, Class(labels and their location)
+    rospy.Subscriber('/class_image_YOLO', image_with_class, reference_callback) # BGR, Depth, Class(labels and their location)
     graph_pub = rospy.Publisher("Graph_of_Detection", position_3d, queue_size=1)
+    global reference_pub
+    # reference_pub = rospy.Publisher("Reference_Frame", Image, queue_size=1)
     rospy.sleep(2)
     while True:
         # pointcloud = generate_pointcloud(rgb_message, depth_message)
@@ -103,4 +111,8 @@ if __name__ == '__main__':
             x_float_list, y_float_list, z_float_list, number_of_object= get_points_data(class_name, total_x, total_y, total_z)
             x_center_list, y_center_list, z_center_list = calculate_center(x_float_list, y_float_list, z_float_list, number_of_object)
             class_name = None # to clear the existed class
+            referen_image_mat = bridge.imgmsg_to_cv2(referen_image, "rgb8")
+            cv2.waitKey(3)
+            cv2.imshow("Reference Image", referen_image_mat)
+            cv2.waitKey(3)
             draw_geometry_points(x_center_list, y_center_list, z_center_list, number_of_object)

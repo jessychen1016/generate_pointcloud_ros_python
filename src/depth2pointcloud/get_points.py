@@ -23,7 +23,7 @@ bridge = CvBridge()
 focal_length = 378.95
 cy = 242.83
 cx = 321.53
-scalingFactor = 4000.00
+scalingFactor = 3000
 
 
 
@@ -127,7 +127,7 @@ def generate_pointcloud_all_in_one(all_in_one_message, only_class=True):
                     color = cv_rgb[v,u]
                     Z = cv_depth[v,u]/ scalingFactor
                     # to prevent hole failure
-                    if Z<=0.5: 
+                    if Z<=1: 
                         Z = Z1
                         X = (u - cx) * Z1 / focal_length
                         Y = (v - cy) * Z1 / focal_length
@@ -149,8 +149,12 @@ def generate_pointcloud_all_in_one(all_in_one_message, only_class=True):
             all_y_in_one_object = ""
             all_z_in_one_object = ""
         geometry_data = output_geometry(class_name, total_x, total_y, total_z)
+        geometry_data.header.stamp.secs = rgb_message.header.stamp.secs
+        geometry_data.header.stamp.nsecs = rgb_message.header.stamp.nsecs
         header = Header()
         header.frame_id = "try_pointcloud"
+        header.stamp.secs = rgb_message.header.stamp.secs
+        header.stamp.nsecs = rgb_message.header.stamp.nsecs
         fields = [
                     PointField('x', 0, PointField.FLOAT32, 1),
                     PointField('y', 4, PointField.FLOAT32, 1),
@@ -163,7 +167,7 @@ def generate_pointcloud_all_in_one(all_in_one_message, only_class=True):
     else:
             # add some filters
 
-        cv_depth = cv2.medianBlur(cv_depth,7)
+        cv_depth = cv2.medianBlur(cv_depth,5)
         # cv_depth = cv2.blur(cv_depth, (9,9))
         # cv_depth = cv2.GaussianBlur(cv_depth, (3,3), 1)
         
@@ -246,19 +250,27 @@ def all_in_one_callback(all_in_one):
 if __name__ == '__main__':
     rospy.init_node('PointCloud_Generator', anonymous=True)
 
+
+    # setting a few parameters
     rgb_topic='AeroCameraDown/infra2/image_rect_raw'
     depth_topic='AeroCameraDown/depth/image_rect_raw'
     all_in_one_topic='class_image_YOLO'
-    point_topic='Points'
+    point_topic_name = "point_cloud2"
+    geometry_topic_name = 'Geometry_Data_of_Detection'
+    only_class = True
   
     # rospy.Subscriber(rgb_topic, rosImage, rgb_callback)  # BGR
     # rospy.Subscriber(depth_topic, rosImage, depth_callback)  # Depth
     rospy.Subscriber(all_in_one_topic, image_with_class, all_in_one_callback) # BGR, Depth, Class(labels and their location)
-    point_pub = rospy.Publisher("point_cloud2", PointCloud2, queue_size=1)
-    geometry_pub = rospy.Publisher("Geometry_Data_of_Detection", position_3d, queue_size=1)
-    rospy.sleep(0.05)
+    point_pub = rospy.Publisher(point_topic_name, PointCloud2, queue_size=1)
+    geometry_pub = rospy.Publisher(geometry_topic_name, position_3d, queue_size=1)
+    rospy.sleep(2)
     while True:
         # pointcloud = generate_pointcloud(rgb_message, depth_message)
-        pointcloud, geometry_data = generate_pointcloud_all_in_one(all_in_one_message, True)
-        point_pub.publish(pointcloud)
-        geometry_pub.publish(geometry_data)
+        if only_class:
+            pointcloud, geometry_data = generate_pointcloud_all_in_one(all_in_one_message, True)
+            point_pub.publish(pointcloud)
+            geometry_pub.publish(geometry_data)
+        else:
+            pointcloud = generate_pointcloud_all_in_one(all_in_one_message, False)
+            point_pub.publish(pointcloud)
