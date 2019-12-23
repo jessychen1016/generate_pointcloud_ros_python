@@ -88,7 +88,12 @@ def draw_geometry_points(x_center_list, y_center_list, z_center_list, number_of_
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
-    plt.ion()
+    ax.set_autoscaley_on(False)
+    ax.set_xlim([-10,10])
+    ax.set_ylim([-10,10])
+    ax.set_zlim([-10,10])
+    
+    plt.ion() # comment this out to stop the program from running and stuck at the for msg recieved
     plt.show()
     plt.pause(0.001)
     
@@ -133,22 +138,25 @@ if __name__ == '__main__':
     # graph_pub = rospy.Publisher("Graph_of_Detection", position_3d, queue_size=1)
 
     global img_reference_pub, pt_reference_pub
-    # reference_pub = rospy.Publisher("IMG_Reference_Frame", Image, queue_size=1)
+    reference_pub = rospy.Publisher("IMG_Reference_Frame", Image, queue_size=1)
     pt_reference_pub = rospy.Publisher("PT_Reference_Frame", PointCloud2, queue_size=1)
     rospy.sleep(2)
     while True:
         # pointcloud = generate_pointcloud(rgb_message, depth_message)
         if class_name: # to make sure the program jump into graph_generate only when get new message arrive
             # #  to show the reference image of the image and the geometry data (Used for debugging and making sure the position is correction)
-            # pt_reference_pub.publish(reference_pt)
+            pt_reference_pub.publish(reference_pt)
+            # end of the refernece show
             input_header_archieve, class_name_archieve, x_float_list, y_float_list, z_float_list, number_of_object= get_points_data(input_header, class_name, total_x, total_y, total_z)
             x_center_list, y_center_list, z_center_list = calculate_center(x_float_list, y_float_list, z_float_list, number_of_object)
             publish_extracted_geo(input_header_archieve, class_name_archieve, x_center_list, y_center_list, z_center_list)
             class_name = None # to clear the existed class
 
-            # # to show the reference image of the image and the geometry data (Used for debugging and making sure the position is correction)
-            # referen_image_mat = bridge.imgmsg_to_cv2(referen_image, "rgb8")
-            # cv2.waitKey(3)
-            # cv2.imshow("Reference Image", referen_image_mat)
-            # cv2.waitKey(3)
+            # to show the reference image of the image and the geometry data (Used for debugging and making sure the position is correction)
+            referen_image_mat = bridge.imgmsg_to_cv2(referen_image, "rgb8")
+            cv2.waitKey(3)
+            cv2.imshow("Reference Image", referen_image_mat)
+            cv2.waitKey(3)
             draw_geometry_points(x_center_list, y_center_list, z_center_list, number_of_object) #to draw the point out with matplotlib (could be disabled with commenting it out)
+            # cv2.waitKey(30000000)
+            #end of the refernce show
