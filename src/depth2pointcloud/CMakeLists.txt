@@ -7,6 +7,7 @@ add_message_files(
   FILES
   image_with_class.msg
   position_3d.msg
+  position_extracted.msg
 )
 generate_messages(
   DEPENDENCIES
