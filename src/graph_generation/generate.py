@@ -141,6 +141,7 @@ if __name__ == '__main__':
     reference_pub = rospy.Publisher("IMG_Reference_Frame", Image, queue_size=1)
     pt_reference_pub = rospy.Publisher("PT_Reference_Frame", PointCloud2, queue_size=1)
     rospy.sleep(2)
+    class_name = 0
     while True:
         # pointcloud = generate_pointcloud(rgb_message, depth_message)
         if class_name: # to make sure the program jump into graph_generate only when get new message arrive
